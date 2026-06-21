@@ -1,8 +1,10 @@
 -- QuizMaster 数据库初始化脚本
+SET NAMES utf8mb4;
 
 CREATE DATABASE IF NOT EXISTS quiz_master DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE quiz_master;
+SET NAMES utf8mb4;
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS `user` (
