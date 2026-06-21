@@ -13,4 +13,6 @@ public interface QuestionOptionMapper extends BaseMapper<QuestionOption> {
 
     @Select("SELECT * FROM question_option WHERE question_id = #{questionId}")
     List<QuestionOption> getOptionsByQuestionId(@Param("questionId") Long questionId);
+
+    void insertBatch(@Param("list") List<QuestionOption> list);
 }

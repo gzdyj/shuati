@@ -16,4 +16,6 @@ public interface QuestionMapper extends BaseMapper<Question> {
 
     @Select("SELECT * FROM question WHERE category_id = #{categoryId} ORDER BY RAND() LIMIT #{limit}")
     List<Question> randomQuestionsByCategory(@Param("categoryId") Long categoryId, @Param("limit") int limit);
+
+    void insertBatch(@Param("list") List<Question> list);
 }

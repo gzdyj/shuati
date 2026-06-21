@@ -1,23 +1,34 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
+interface Category {
+  id: number
+  name: string
+  icon: string
+  questionCount: number
+}
 
 const router = useRouter()
 const userInfo = ref<any>(null)
-const categories = ref([
-  { id: 1, name: '政治', icon: '🏛️', count: 120 },
-  { id: 2, name: '历史', icon: '📜', count: 85 },
-  { id: 3, name: '地理', icon: '🌍', count: 76 },
-  { id: 4, name: '法律', icon: '⚖️', count: 95 },
-  { id: 5, name: '经济', icon: '💰', count: 110 },
-  { id: 6, name: '科技', icon: '🔬', count: 88 }
-])
+const categories = ref<Category[]>([])
 const stats = ref({
   totalAnswered: 0,
   correctRate: 0,
   continueDays: 0
 })
+
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('/api/question/categories')
+    if (response.data.code === 200) {
+      categories.value = response.data.data
+    }
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  }
+}
 
 const handleLogout = () => {
   localStorage.removeItem('token')
@@ -38,6 +49,7 @@ onMounted(() => {
   if (stored) {
     userInfo.value = JSON.parse(stored)
   }
+  fetchCategories()
 })
 </script>
 
@@ -110,7 +122,7 @@ onMounted(() => {
         >
           <div class="text-3xl mb-2">{{ cat.icon }}</div>
           <h3 class="font-bold text-gray-800">{{ cat.name }}</h3>
-          <p class="text-xs text-gray-500 mt-1">{{ cat.count }} 道题目</p>
+          <p class="text-xs text-gray-500 mt-1">{{ cat.questionCount }} 道题目</p>
         </div>
       </div>
     </div>

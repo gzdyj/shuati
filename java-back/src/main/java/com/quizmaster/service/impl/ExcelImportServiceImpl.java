@@ -8,7 +8,6 @@ import com.quizmaster.mapper.QuestionMapper;
 import com.quizmaster.mapper.QuestionOptionMapper;
 import com.quizmaster.service.ExcelImportService;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,19 +26,27 @@ public class ExcelImportServiceImpl implements ExcelImportService {
     @Autowired
     private QuestionOptionMapper questionOptionMapper;
 
+    private static final int BATCH_SIZE = 500;
+
+    @Autowired
+    private com.quizmaster.service.QuestionService questionService;
+
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public ImportResultDTO importQuestions(MultipartFile file) {
         ImportResultDTO result = new ImportResultDTO();
         List<String> errors = new ArrayList<>();
         int successCount = 0;
         int failCount = 0;
+        int totalRows = 0;
+
+        List<Question> questionBatch = new ArrayList<>();
+        List<QuestionOption> optionBatch = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = new XSSFWorkbook(inputStream)) {
+             Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
-            int totalRows = sheet.getLastRowNum();
+            totalRows = sheet.getLastRowNum();
             result.setTotalRows(totalRows);
 
             for (int i = 1; i <= totalRows; i++) {
@@ -47,7 +54,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 if (row == null) continue;
 
                 QuestionImportDTO dto = parseRow(row, i + 1);
-                
+
                 if (dto == null) {
                     failCount++;
                     errors.add("第" + (i + 1) + "行：数据为空或格式错误");
@@ -61,12 +68,27 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 }
 
                 try {
-                    saveQuestion(dto);
-                    successCount++;
+                    Question question = convertToQuestion(dto);
+                    questionBatch.add(question);
+
+                    List<QuestionOption> options = convertToOptions(dto);
+                    optionBatch.addAll(options);
+
+                    if (questionBatch.size() >= BATCH_SIZE) {
+                        batchInsert(questionBatch, optionBatch);
+                        successCount += questionBatch.size();
+                        questionBatch.clear();
+                        optionBatch.clear();
+                    }
                 } catch (Exception e) {
                     failCount++;
-                    errors.add("第" + (i + 1) + "行：保存失败 - " + e.getMessage());
+                    errors.add("第" + (i + 1) + "行：转换失败 - " + e.getMessage());
                 }
+            }
+
+            if (!questionBatch.isEmpty()) {
+                batchInsert(questionBatch, optionBatch);
+                successCount += questionBatch.size();
             }
 
         } catch (Exception e) {
@@ -78,6 +100,24 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         result.setFailCount(failCount);
         result.setErrorMessages(errors);
         return result;
+    }
+
+    @Autowired
+    private com.quizmaster.service.QuestionOptionService questionOptionService;
+
+    @Transactional(rollbackFor = Exception.class)
+    public void batchInsert(List<Question> questions, List<QuestionOption> options) {
+        questionService.saveBatch(questions);
+
+        for (int i = 0; i < questions.size(); i++) {
+            Long questionId = questions.get(i).getId();
+            int optionStartIndex = i * 4;
+            for (int j = 0; j < 4 && optionStartIndex + j < options.size(); j++) {
+                options.get(optionStartIndex + j).setQuestionId(questionId);
+            }
+        }
+
+        questionOptionService.saveBatch(options);
     }
 
     private QuestionImportDTO parseRow(Row row, int rowNum) {
@@ -109,7 +149,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 
     private String getCellValue(Cell cell) {
         if (cell == null) return "";
-        
+
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue().trim();
@@ -140,38 +180,37 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 && dto.getAnswer() != null && !dto.getAnswer().isEmpty();
     }
 
-    private void saveQuestion(QuestionImportDTO dto) {
+    private Question convertToQuestion(QuestionImportDTO dto) {
         Question question = new Question();
         question.setContent(dto.getTitle());
         question.setCorrectAnswer(dto.getAnswer().toUpperCase());
         question.setExplanation(dto.getAnalysis());
-        
-        questionMapper.insert(question);
-        
-        Long questionId = question.getId();
+        return question;
+    }
+
+    private List<QuestionOption> convertToOptions(QuestionImportDTO dto) {
+        List<QuestionOption> options = new ArrayList<>();
 
         QuestionOption optionA = new QuestionOption();
-        optionA.setQuestionId(questionId);
         optionA.setOptionId("A");
         optionA.setContent(dto.getOptionA());
-        questionOptionMapper.insert(optionA);
+        options.add(optionA);
 
         QuestionOption optionB = new QuestionOption();
-        optionB.setQuestionId(questionId);
         optionB.setOptionId("B");
         optionB.setContent(dto.getOptionB());
-        questionOptionMapper.insert(optionB);
+        options.add(optionB);
 
         QuestionOption optionC = new QuestionOption();
-        optionC.setQuestionId(questionId);
         optionC.setOptionId("C");
         optionC.setContent(dto.getOptionC());
-        questionOptionMapper.insert(optionC);
+        options.add(optionC);
 
         QuestionOption optionD = new QuestionOption();
-        optionD.setQuestionId(questionId);
         optionD.setOptionId("D");
         optionD.setContent(dto.getOptionD());
-        questionOptionMapper.insert(optionD);
+        options.add(optionD);
+
+        return options;
     }
 }
