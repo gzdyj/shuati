@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Pagination from '../components/Pagination.vue'
 
 const questions = ref<any[]>([])
 const categories = ref<any[]>([])
@@ -70,6 +71,12 @@ const searchQuestions = () => {
 
 const changePage = (page: number) => {
   currentPage.value = page
+  fetchQuestions()
+}
+
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
   fetchQuestions()
 }
 
@@ -253,17 +260,13 @@ onMounted(() => {
       </div>
 
       <!-- 分页 -->
-      <div class="flex justify-center mt-4 gap-2">
-        <button
-          v-for="page in Math.ceil(total / pageSize)"
-          :key="page"
-          @click="changePage(page)"
-          :class="currentPage === page ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'"
-          class="px-3 py-1 rounded hover:opacity-80"
-        >
-          {{ page }}
-        </button>
-      </div>
+      <Pagination
+        :total="total"
+        :current="currentPage"
+        :size="pageSize"
+        @page-change="changePage"
+        @size-change="handleSizeChange"
+      />
     </div>
 
     <!-- 编辑弹窗 -->
