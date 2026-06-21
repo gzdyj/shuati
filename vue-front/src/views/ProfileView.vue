@@ -11,6 +11,7 @@ const stats = ref({
   rank: 0
 })
 const loading = ref(false)
+const isAdmin = ref(false)
 
 const fetchProfile = async () => {
   loading.value = true
@@ -37,11 +38,14 @@ const fetchProfile = async () => {
 const handleLogout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('userInfo')
+  localStorage.removeItem('userRole')
   router.push('/login')
 }
 
 onMounted(() => {
   fetchProfile()
+  // 检查是否为管理员
+  isAdmin.value = localStorage.getItem('userRole') === 'ADMIN'
 })
 </script>
 
@@ -82,6 +86,18 @@ onMounted(() => {
     <div class="max-w-4xl mx-auto px-4 mt-6">
       <div class="bg-white rounded-xl shadow-sm">
         <div class="divide-y divide-gray-100">
+          <!-- 管理后台入口（仅管理员可见） -->
+          <router-link
+            v-if="isAdmin"
+            to="/admin"
+            class="flex items-center justify-between p-4 hover:bg-gray-50 transition bg-blue-50"
+          >
+            <div class="flex items-center">
+              <span class="text-xl mr-3">🛡️</span>
+              <span class="text-blue-600 font-medium">管理后台</span>
+            </div>
+            <span class="text-gray-400">→</span>
+          </router-link>
           <router-link
             to="/history"
             class="flex items-center justify-between p-4 hover:bg-gray-50 transition"

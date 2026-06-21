@@ -52,6 +52,31 @@ const router = createRouter({
       name: 'Import',
       component: () => import('@/views/ImportView.vue'),
       meta: { requiresAuth: true }
+    },
+    // 管理后台路由
+    {
+      path: '/admin',
+      name: 'AdminDashboard',
+      component: () => import('@/views/AdminDashboard.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/users',
+      name: 'AdminUsers',
+      component: () => import('@/views/AdminUsers.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/questions',
+      name: 'AdminQuestions',
+      component: () => import('@/views/AdminQuestions.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/categories',
+      name: 'AdminCategories',
+      component: () => import('@/views/AdminCategories.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
@@ -59,8 +84,13 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
+  const userRole = localStorage.getItem('userRole')
+
   if (to.meta.requiresAuth && !token) {
     next('/login')
+  } else if (to.meta.requiresAdmin && userRole !== 'ADMIN') {
+    // 非管理员访问管理后台，跳转到首页
+    next('/home')
   } else {
     next()
   }

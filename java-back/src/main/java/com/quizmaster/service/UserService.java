@@ -33,7 +33,10 @@ public class UserService extends ServiceImpl<UserMapper, User> {
             throw new RuntimeException("用户名或密码错误");
         }
 
-        String token = jwtUtils.generateToken(user.getId(), user.getUsername());
+        // 获取用户角色，默认为USER
+        String role = user.getRole() != null ? user.getRole() : "USER";
+
+        String token = jwtUtils.generateToken(user.getId(), user.getUsername(), role);
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
@@ -41,6 +44,7 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", user.getId());
         userInfo.put("username", user.getUsername());
+        userInfo.put("role", role);
         result.put("user", userInfo);
 
         return result;
@@ -56,6 +60,7 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setRole("USER");  // 新注册用户默认为普通用户
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
 

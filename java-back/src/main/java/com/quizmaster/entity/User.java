@@ -13,6 +13,7 @@ public class User {
     private Long id;
     private String username;
     private String password;
+    private String role;  // 角色: USER-普通用户, ADMIN-管理员
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
