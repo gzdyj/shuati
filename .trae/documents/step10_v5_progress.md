@@ -253,9 +253,57 @@ vite v6.4.3 building for production...
 
 ---
 
+---
+
+## 七、GitHub Actions 自动构建 Docker 镜像
+
+### 7.1 配置步骤
+
+**1. 创建 Docker Hub Access Token**
+- 登录 [Docker Hub](https://hub.docker.com/)
+- 进入 Account Settings → Security → New Access Token
+- 输入 Token 名称（如 `github-actions`）
+- 选择权限：至少需要 `Read` 和 `Write`
+- 保存生成的 Token（只显示一次）
+
+**2. 配置 GitHub Secrets**
+- 打开 GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret
+- 添加以下两个 Secrets：
+  - `DOCKER_HUB_USERNAME`: Docker Hub 用户名
+  - `DOCKER_HUB_TOKEN`: 上一步生成的 Access Token
+
+**3. 工作流文件**
+
+创建了 [docker-build.yml](file:///g:/dev/trace/shuati/.github/workflows/docker-build.yml)，主要配置：
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| 触发条件 | `push` 到 `master` 分支 | 每次 push 代码自动触发 |
+| 运行环境 | `ubuntu-latest` | GitHub 托管的 Ubuntu Runner |
+| 构建任务 | `build-backend` + `build-frontend` | 前后端并行构建 |
+| 镜像标签 | `latest` + `git-sha` | 同时打两个标签 |
+
+### 7.2 镜像命名
+
+构建成功后会生成以下镜像：
+
+| 镜像名称 | 标签 |
+|---------|------|
+| `{username}/quizmaster-backend` | `latest`, `{commit-sha}` |
+| `{username}/quizmaster-frontend` | `latest`, `{commit-sha}` |
+
+### 7.3 验证
+
+配置完成后，下次 push 代码到 master 分支时：
+1. GitHub Actions 会自动触发工作流
+2. 在仓库的 Actions 页面可查看构建进度
+3. 构建成功后镜像会自动推送到 Docker Hub
+
+---
+
 ## 文档版本
 
-**版本**: V5.0
+**版本**: V5.1
 **创建时间**: 2026-06-21
 **最后更新**: 2026-06-21
-**更新内容**: 完成分页功能完善开发，前端构建验证通过
+**更新内容**: 添加 GitHub Actions 自动构建 Docker 镜像功能
